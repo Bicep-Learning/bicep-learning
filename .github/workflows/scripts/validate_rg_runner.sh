@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Function to determine the parameter file and resource group based on environment
+# Function to determine the parameter file based on environment
 get_params() {
     local env=$1
     case $env in
@@ -13,7 +13,6 @@ get_params() {
         prod)
             parameterFile="./bicep/rg_parameters_prod.json"
             ;;
-
         *)
             echo "Invalid environment specified"
             exit 1
@@ -30,12 +29,26 @@ validate_rg() {
 
     get_params "$environment"
 
-    az deployment sub validate --name $uuid --location $location --template-file $template_file --parameters $parameterFile
-    az deployment sub what-if --name $uuid  --location $location --template-file $template_file --parameters $parameterFile
+    # Perform validation and what-if analysis
+    az deployment sub validate --name "$uuid" --location "$location" --template-file "$template_file" --parameters "$parameterFile" || {
+        echo "Validation failed"
+        exit 1
+    }
+    az deployment sub what-if --name "$uuid" --location "$location" --template-file "$template_file" --parameters "$parameterFile" || {
+        echo "What-if analysis failed"
+        exit 1
+    }
 }
 
 # Main script starts here
 template_file="./bicep/rg.bicep"
 environment="$1"
+
+# Check if environment argument is provided
+if [[ -z "$environment" ]]; then
+    echo "Usage: $0 <environment>"
+    echo "Environment options: dev, test, prod"
+    exit 1
+fi
 
 validate_rg "$template_file" "$environment"
