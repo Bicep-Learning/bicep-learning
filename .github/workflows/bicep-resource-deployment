@@ -1,0 +1,58 @@
+name: Azure resource deployment pipeline
+
+# Controls when the workflow will run
+on:
+  push:
+    branches:
+      - 'resourceGroupDeployment'  
+
+# Permissions setting indicates that an access token has to be used
+permissions:
+  id-token: write
+  contents: read
+
+
+
+jobs:
+   buildDevRGIaC:
+     name: Build Dev - RG Infrastructure
+     runs-on: ubuntu-latest
+     env:
+       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: true # Set for all steps in this job
+     # Steps represent a sequence of tasks that will be executed as part of the job
+     steps:
+       - name: Checkout Repo
+         uses: actions/checkout@v3
+       - name: Azure Authentication
+         uses: azure/login@v1
+         with:
+           creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+       - name: Validate Bicep templates to ensure transpilation, linting, and preflight are successful
+         uses: azure/CLI@v1.0.7
+         with: 
+           azcliversion: latest
+           inlineScript: |
+              chmod +x $GITHUB_WORKSPACE/.github/workflows/scripts/validate_rg_runner.sh
+              $GITHUB_WORKSPACE/.github/workflows/scripts/validate_rg_runner.sh dev
+   
+   deployDevRGIaC:
+     name: Deploy Dev - RG Infrastructure
+     needs: [buildDevRGIaC]
+     runs-on: ubuntu-latest
+     env:
+       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT: true # Set for all steps in this job
+     # Steps represent a sequence of tasks that will be executed as part of the job
+     steps:
+       - name: Checkout Repo
+         uses: actions/checkout@v3
+       - name: Azure Authentication
+         uses: azure/login@v1
+         with:
+           creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"${{ secrets.AZURE_SUBSCRIPTION_ID }}","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+       - name: Deploy infrastructure
+         uses: azure/CLI@v1.0.7
+         with: 
+           azcliversion: latest
+           inlineScript: |
+              chmod +x $GITHUB_WORKSPACE/.github/workflows/scripts/deploy_rg_runner.sh
+              $GITHUB_WORKSPACE/.github/workflows/scripts/deploy_rg_runner.sh dev
