@@ -2,16 +2,12 @@ name: Azure resource deployment pipeline
 
 # Controls when the workflow will run
 on:
-  push:
-    branches:
-      - 'resourceGroupDeployment'  
+  workflow_dispatch: # Enables manual trigger for this workflow
 
 # Permissions setting indicates that an access token has to be used
 permissions:
   id-token: write
   contents: read
-
-
 
 jobs:
    buildDevRGIaC:
